@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Проверка методики — прецизионность и правильность</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f5f7f6;
+    --paper-line: rgba(20,40,38,0.07);
+    --ink:#132420;
+    --ink-soft:#4b5a56;
+    --teal:#0f6e6e;
+    --teal-deep:#0a4f4f;
+    --amber:#b8792a;
+    --pass:#2e7d4f;
+    --pass-bg:#e6f2ea;
+    --fail:#a3352b;
+    --fail-bg:#fbe9e7;
+    --card:#ffffff;
+    --border:#d8ddd9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0/100% 34px,
+      var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding-bottom:80px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+
+  header.top{
+    padding:44px 24px 28px;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(15,110,110,0.05), transparent);
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:clamp(26px,4vw,38px);
+    margin:0 0 10px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:15px;
+    max-width:680px;
+    line-height:1.5;
+    margin:0;
+  }
+
+  section{padding:34px 24px;border-bottom:1px solid var(--border);}
+  h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:19px;
+    margin:0 0 4px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  h2 .num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--teal);
+    border:1px solid var(--teal);
+    border-radius:3px;
+    padding:1px 6px;
+  }
+  .hint{color:var(--ink-soft);font-size:13.5px;margin:0 0 20px;line-height:1.5;}
+
+  /* level selector */
+  .levels{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+  .level-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    padding:8px 14px;
+    border:1px solid var(--border);
+    background:var(--card);
+    border-radius:6px;
+    cursor:pointer;
+    color:var(--ink);
+    transition:.15s;
+  }
+  .level-btn:hover{border-color:var(--teal);}
+  .level-btn.active{
+    background:var(--teal);
+    border-color:var(--teal);
+    color:#fff;
+  }
+  .d2-custom{
+    display:flex;align-items:center;gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    color:var(--ink-soft);
+  }
+  .d2-custom input{
+    width:90px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    padding:7px 8px;
+    border:1px solid var(--border);
+    border-radius:5px;
+    background:var(--card);
+    color:var(--ink);
+  }
+
+  /* grid */
+  .grid-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:8px;background:var(--card);}
+  table.datagrid{border-collapse:collapse;width:100%;min-width:920px;}
+  table.datagrid th, table.datagrid td{
+    border:1px solid var(--border);
+    text-align:center;
+    padding:0;
+  }
+  table.datagrid thead th{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--teal-deep);
+    background:#eef4f3;
+    padding:8px 4px;
+    font-weight:600;
+  }
+  table.datagrid tbody th{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    background:#f2f4f3;
+    width:38px;
+  }
+  table.datagrid input{
+    width:100%;
+    border:none;
+    background:transparent;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    padding:9px 2px;
+    color:var(--ink);
+  }
+  table.datagrid input:focus{
+    outline:2px solid var(--teal);
+    outline-offset:-2px;
+    background:#f0f8f7;
+  }
+  tr.mean-row td{background:#f7faf9;}
+  tr.mean-row .meanval{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--teal-deep);
+    font-weight:600;
+    padding:8px 2px;
+  }
+
+  .grid-actions{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+    margin-top:12px;
+  }
+  .paste-hint{font-size:12.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+  button.ghost{
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    padding:8px 14px;
+    border:1px solid var(--border);
+    background:var(--card);
+    border-radius:6px;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  button.ghost:hover{border-color:var(--fail);color:var(--fail);}
+
+  .pgso-row{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;font-size:13.5px;color:var(--ink-soft);}
+  .pgso-row label{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;}
+  .pgso-row input{width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-family:'IBM Plex Mono',monospace;}
+
+  .notice{
+    margin-top:12px;
+    font-size:13.5px;
+    color:var(--fail);
+    font-family:'IBM Plex Mono',monospace;
+    min-height:16px;
+  }
+  button.compute{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:16px;
+    padding:14px 26px;
+    border:none;
+    border-radius:7px;
+    background:var(--teal);
+    color:#fff;
+    cursor:pointer;
+    margin-top:24px;
+    box-shadow:0 2px 0 var(--teal-deep);
+  }
+  button.compute:active{transform:translateY(1px);box-shadow:none;}
+
+  /* results */
+  .metric-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:14px;
+    margin-top:18px;
+  }
+  .metric{
+    border:1px solid var(--border);
+    border-radius:9px;
+    background:var(--card);
+    padding:16px 16px 14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .metric::before{
+    content:'';
+    position:absolute;left:0;top:0;bottom:0;width:5px;
+    background:var(--border);
+  }
+  .metric.pass::before{background:var(--pass);}
+  .metric.fail::before{background:var(--fail);}
+  .metric .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  .metric .value{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:26px;
+    font-weight:700;
+    margin:0 0 4px;
+  }
+  .metric .threshold{font-size:12.5px;color:var(--ink-soft);}
+  .metric .status{
+    display:inline-block;
+    margin-top:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .metric.pass .status{background:var(--pass-bg);color:var(--pass);}
+  .metric.fail .status{background:var(--fail-bg);color:var(--fail);}
+  .metric .tip{
+    font-size:12.5px;
+    line-height:1.5;
+    color:var(--ink-soft);
+    margin:10px 0 0;
+    padding-top:10px;
+    border-top:1px dashed var(--border);
+  }
+  .metric .tip b{color:var(--ink);}
+  .rec-list{margin:14px 0 0;padding-left:0;list-style:none;}
+  .rec-list li{
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-left:3px solid var(--amber);
+    border-radius:6px;
+    background:#fdf8f0;
+    margin-bottom:8px;
+  }
+  .rec-list li.ok{
+    border-left-color:var(--pass);
+    background:#f4faf6;
+  }
+  .rec-list li b{color:var(--ink);}
+
+  .aux-toggle{
+    margin-top:24px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--teal-deep);
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    user-select:none;
+  }
+  .aux{display:none;margin-top:16px;}
+  .aux.open{display:block;}
+  table.auxtable{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.auxtable td, table.auxtable th{
+    border:1px solid var(--border);
+    padding:8px 10px;
+    text-align:left;
+  }
+  table.auxtable th{background:#f2f4f3;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;color:var(--ink-soft);}
+  table.auxtable td.val{font-family:'IBM Plex Mono',monospace;text-align:right;}
+  .pill{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:2px 7px;
+    border-radius:20px;
+  }
+  .pill.pass{background:var(--pass-bg);color:var(--pass);}
+  .pill.fail{background:var(--fail-bg);color:var(--fail);}
+
+  /* stamp */
+  .stamp-area{
+    margin-top:34px;
+    display:flex;
+    align-items:center;
+    gap:26px;
+    flex-wrap:wrap;
+  }
+  .stamp{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:20px;
+    letter-spacing:.04em;
+    border:3px solid var(--pass);
+    color:var(--pass);
+    padding:12px 22px;
+    border-radius:10px;
+    transform:rotate(-3deg);
+    display:inline-block;
+    text-transform:uppercase;
+  }
+  .stamp.fail{border-color:var(--fail);color:var(--fail);}
+  .stamp-sub{font-size:13.5px;color:var(--ink-soft);max-width:420px;line-height:1.5;}
+
+  .empty-note{
+    color:var(--ink-soft);
+    font-size:13.5px;
+    font-style:italic;
+    margin-top:18px;
+  }
+
+  @media (max-width:640px){
+    section{padding:26px 16px;}
+    header.top{padding:32px 16px 22px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>Проверка данных</h1>
+    <p class="sub">Введите реальные результаты измерений — 15 условий (столбцы) × 4 параллельных определения (строки). Калькулятор посчитает повторяемость, воспроизводимость и точность и покажет, укладывается ли методика в норму.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <h2><span class="num">01</span> Аттестованное значение (D2)</h2>
+  <p class="hint">Выберите уровень концентрации или введите своё значение.</p>
+  <div class="levels" id="levelBtns">
+    <button class="level-btn" data-v="2">2</button>
+    <button class="level-btn" data-v="7">7</button>
+    <button class="level-btn" data-v="28">28</button>
+    <button class="level-btn" data-v="112">112</button>
+    <button class="level-btn" data-v="164">164</button>
+    <span class="d2-custom">или свои: <input type="number" step="0.01" id="d2custom" placeholder="D2"></span>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">02</span> Данные измерений</h2>
+  <p class="hint">Можно вставить блок 4×15 сразу из Excel (Ctrl+V), кликнув в первую ячейку таблицы.</p>
+  <div class="grid-scroll">
+    <table class="datagrid" id="grid">
+      <thead>
+        <tr><th></th><!-- generated columns C..Q --></tr>
+      </thead>
+      <tbody><!-- generated rows 3..6 --></tbody>
+      <tfoot>
+        <tr class="mean-row"><th>ср</th></tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="grid-actions">
+    <span class="paste-hint">60 значений всего · среднее по столбцу считается автоматически</span>
+    <button class="ghost" id="clearBtn">Очистить таблицу</button>
+  </div>
+
+  <div class="pgso-row">
+    <label>ПГ СО (погрешность стандартного образца), %:
+      <input type="number" step="0.01" id="pgso" value="0.3">
+    </label>
+  </div>
+
+  <button class="compute" id="computeBtn">Рассчитать показатели →</button>
+  <p class="notice" id="notice"></p>
+</section>
+
+<section id="resultsSection" style="display:none;">
+  <h2><span class="num">03</span> Результат</h2>
+  <p class="hint">Критерии пригодности методики.</p>
+
+  <div class="metric-grid" id="metricGrid"></div>
+
+  <span class="aux-toggle" id="auxToggle">▸ дополнительные проверки (Кохрен, промахи, правильность)</span>
+  <div class="aux" id="auxBlock"></div>
+
+  <div class="stamp-area" id="stampArea"></div>
+</section>
+
+<section id="emptySection">
+  <p class="empty-note">Заполните таблицу и нажмите «Рассчитать», чтобы увидеть результат.</p>
+</section>
+
+</div>
+
+<script>
+const COLS = 15; // C..Q
+const ROWS = 4;  // rows 3..6
+const colLetters = "CDEFGHIJKLMNOPQ".split("");
+
+// ---------- build grid ----------
+const theadRow = document.querySelector('#grid thead tr');
+colLetters.forEach(l=>{
+  const th = document.createElement('th');
+  th.textContent = l;
+  theadRow.appendChild(th);
+});
+
+const tbody = document.querySelector('#grid tbody');
+for(let r=0;r<ROWS;r++){
+  const tr = document.createElement('tr');
+  const th = document.createElement('th');
+  th.textContent = r+3;
+  tr.appendChild(th);
+  for(let c=0;c<COLS;c++){
+    const td = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.dataset.row = r;
+    input.dataset.col = c;
+    input.addEventListener('paste', handlePaste);
+    input.addEventListener('input', ()=>updateColumnMeans());
+    input.addEventListener('blur', (e)=>{
+      const n = parseNum(e.target.value);
+      if(!isNaN(n)) e.target.value = n.toFixed(2);
+    });
+    td.appendChild(input);
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+const meanRow = document.querySelector('.mean-row');
+for(let c=0;c<COLS;c++){
+  const td = document.createElement('td');
+  td.className='meanval';
+  td.dataset.col = c;
+  td.textContent = '—';
+  meanRow.appendChild(td);
+}
+
+function getInput(r,c){
+  return document.querySelector(`input[data-row="${r}"][data-col="${c}"]`);
+}
+
+function handlePaste(e){
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if(!text.includes('\t') && !text.includes('\n')) return; // let default paste happen for single value
+  e.preventDefault();
+  const startR = parseInt(e.target.dataset.row);
+  const startC = parseInt(e.target.dataset.col);
+  const rows = text.replace(/\r/g,'').split('\n').filter(x=>x.length>0 || true).filter((_,i,arr)=> !(i===arr.length-1 && arr[i]===''));
+  rows.forEach((rowText, ri)=>{
+    const cells = rowText.split('\t');
+    cells.forEach((val, ci)=>{
+      const rr = startR+ri, cc = startC+ci;
+      if(rr < ROWS && cc < COLS && val.trim() !== ''){
+        const num = parseNum(val);
+        if(!isNaN(num)){
+          getInput(rr,cc).value = num.toFixed(2);
+        }
+      }
+    });
+  });
+  updateColumnMeans();
+}
+
+function parseNum(str){
+  if(str===undefined || str===null) return NaN;
+  const cleaned = String(str).trim().replace(',', '.');
+  if(cleaned === '') return NaN;
+  return parseFloat(cleaned);
+}
+
+function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function stdevSample(arr){
+  const m = mean(arr);
+  const ss = arr.reduce((a,b)=>a+(b-m)*(b-m),0);
+  return Math.sqrt(ss/(arr.length-1));
+}
+
+function readColumn(c){
+  const vals = [];
+  for(let r=0;r<ROWS;r++){
+    const v = parseNum(getInput(r,c).value);
+    if(!isNaN(v)) vals.push(v);
+  }
+  return vals;
+}
+
+function updateColumnMeans(){
+  const meanCells = document.querySelectorAll('.meanval');
+  for(let c=0;c<COLS;c++){
+    const vals = readColumn(c);
+    const cell = document.querySelector(`.meanval[data-col="${c}"]`);
+    cell.textContent = vals.length===ROWS ? mean(vals).toFixed(3) : '—';
+  }
+}
+
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('#grid input').forEach(i=>i.value='');
+  updateColumnMeans();
+  document.getElementById('resultsSection').style.display='none';
+  document.getElementById('emptySection').style.display='block';
+});
+
+// ---------- D2 selection ----------
+let D2 = null;
+document.querySelectorAll('.level-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.level-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    D2 = parseFloat(btn.dataset.v);
+    document.getElementById('d2custom').value = '';
+  });
+});
+document.getElementById('d2custom').addEventListener('input', (e)=>{
+  document.querySelectorAll('.level-btn').forEach(b=>b.classList.remove('active'));
+  D2 = parseFloat(e.target.value);
+});
+
+// ---------- compute ----------
+document.getElementById('computeBtn').addEventListener('click', compute);
+
+function fmt(n, d=2){ return isFinite(n) ? n.toFixed(d) : '—'; }
+
+function compute(){
+  const notice = document.getElementById('notice');
+  notice.textContent = '';
+
+  if(!D2 || isNaN(D2)){
+    notice.textContent = 'Укажите аттестованное значение D2 (выберите уровень или введите своё).';
+    return;
+  }
+  // gather data
+  const cols = [];
+  for(let c=0;c<COLS;c++){
+    const vals = readColumn(c);
+    if(vals.length !== ROWS){
+      notice.textContent = `Заполните все 60 ячеек (15 столбцов × 4 значения) — не хватает данных в столбце ${colLetters[c]}.`;
+      return;
+    }
+    cols.push(vals);
+  }
+  const PGso = parseFloat(document.getElementById('pgso').value) || 0;
+
+  const m = cols.map(mean);              // column means, 15
+  const s = cols.map(stdevSample);        // column stdevs, 15
+  const R7 = mean(m);                     // overall mean
+  const R8 = stdevSample(m);              // stdev of column means
+  const sq = s.map(x=>x*x);
+  const sumSq = sq.reduce((a,b)=>a+b,0);
+  const maxSq = Math.max(...sq);
+  const Gm = maxSq/sumSq;
+  const GmTabl = 0.276;
+
+  const Grm = Math.sqrt(sumSq/15);
+  const allCells = [].concat(...cols, m); // C3:Q7 equivalent (60 raw + 15 means)
+  const overallAvgAll = mean(allCells);
+  const GrmPct = 100*Grm/overallAvgAll;   // repeatability %
+
+  const GRmMin = (R7 - Math.min(...m))/R8;
+  const GRmMax = (Math.max(...m) - R7)/R8;
+  const GRtabl = 2.549;
+
+  const R9 = R8*R8;
+  const GRm = Math.sqrt(R9 + 0.25*Grm*Grm);
+  const GRmPct = 100*GRm/R7;              // reproducibility %
+
+  const repLimit = 2.77*GrmPct;
+  const reproLimit = 2.77*GRmPct;
+
+  const G2Rm = GRm*GRm;
+  const Qm = R7 - D2;
+  const Gcm = Math.sqrt(R9/15 + (PGso*PGso)/3);
+  const tm = Qm/Gcm;
+  const tTabl = 2.15;
+
+  const dCm = 1.96*Gcm;
+  const dCmPct = dCm*100/R7;
+  const dM = 1.96*Math.sqrt(G2Rm + Gcm*Gcm);
+  const dMPct = dM*100/R7;                // accuracy %
+
+  const biasPct = 100*(R7-D2)/D2;
+
+  // ---- pass/fail ----
+  const repPass = GrmPct <= 5;
+  const reproPass = GRmPct <= 8;
+  const accPass = dMPct <= 20;
+  const cochranPass = Gm <= GmTabl;
+  const grubbsPass = GRmMin <= GRtabl && GRmMax <= GRtabl;
+  const truenessPass = Math.abs(tm) <= tTabl;
+
+  const overallPass = repPass && reproPass && accPass && cochranPass && grubbsPass && truenessPass;
+
+  // ---- find which columns are driving problems, for targeted advice ----
+  const worstRepCol = colLetters[sq.indexOf(maxSq)];
+  const highColIdx = m.indexOf(Math.max(...m));
+  const lowColIdx = m.indexOf(Math.min(...m));
+  const worstHighCol = colLetters[highColIdx];
+  const worstLowCol = colLetters[lowColIdx];
+  const grubbsCol = GRmMax >= GRmMin ? worstHighCol : worstLowCol;
+
+  const TIPS = {
+    rep: repPass
+      ? `Показатель уже в норме, есть запас (${fmt(GrmPct)}% из 5%). Чтобы поднять его ещё, уменьшите разброс между 4 параллельными определениями — начните со столбца <b>${worstRepCol}</b>, у него наибольший внутригрупповой разброс: используйте один откалиброванный дозатор, сократите время между параллелями, держите условия внутри серии постояннее.`
+      : `Слишком большой разброс между 4 параллельными определениями <b>внутри одной серии</b>. Больше всего «шумит» столбец <b>${worstRepCol}</b> — начните с него: проверьте, не было ли там выброса, неточного дозирования или загрязнения пробы, и по возможности переизмерьте эту серию.`,
+    repro: reproPass
+      ? `Показатель уже в норме, есть запас (${fmt(GRmPct)}% из 8%). Чтобы поднять его ещё, унифицируйте протокол между сериями — сильнее всего от общего среднего отклоняются столбцы <b>${worstHighCol}</b> и <b>${worstLowCol}</b>: сверьте для них партию реагентов, калибровку прибора, оператора и условия (температура/влажность).`
+      : `Средние по сериям слишком сильно отличаются друг от друга <b>между условиями</b> (дни, операторы, партии реагентов). Сильнее всего выбиваются столбцы <b>${worstHighCol}</b> (самое высокое среднее) и <b>${worstLowCol}</b> (самое низкое) — сравните, чем эти серии отличались от остальных.`,
+    acc: accPass
+      ? `Показатель уже в норме, есть запас (${fmt(dMPct)}% из 20%). Точность объединяет случайную погрешность и смещение, поэтому дальше всего поднимают её те же меры, что и выше — снижение повторяемости и воспроизводимости. Дополнительно проверьте «правильность» (систематическое смещение) в дополнительных проверках ниже.`
+      : `Точность объединяет случайную погрешность и смещение. Сначала снизьте повторяемость и воспроизводимость выше — точность обычно подтягивается вместе с ними. Если после этого превышение осталось, смотрите пункт «правильность» в дополнительных проверках ниже.`,
+    trueness: truenessPass
+      ? `Систематического смещения не выявлено (запас: |tm| = ${fmt(Math.abs(tm),2)} из ${tTabl}). Чтобы сузить его ещё, время от времени перепроверяйте чистоту/аттестованную концентрацию стандарта и полноту извлечения пробы — это главные источники систематической ошибки.`
+      : `Среднее (R7) значимо отличается от аттестованного значения D2 — то есть смещение не случайное, а систематическое. Проверьте чистоту/аттестованную концентрацию стандарта, полноту извлечения (экстракции) пробы и калибровку.`,
+    cochran: cochranPass
+      ? `Выбросов по дисперсии не выявлено. Столбец <b>${worstRepCol}</b> всё же вносит наибольший вклад в общий разброс — если захотите ужать повторяемость сильнее, начните с него.`
+      : `Разброс внутри столбца <b>${worstRepCol}</b> резко выделяется на фоне остальных 14 серий — именно он и «тянет» повторяемость вверх. Разберитесь, что пошло не так в этой конкретной серии.`,
+    grubbs: grubbsPass
+      ? `Промахов по средним не выявлено. Столбец <b>${grubbsCol}</b> всё же дальше остальных от общего среднего — если захотите сузить воспроизводимость, начните с него.`
+      : `Среднее одной из серий сильно выбивается на фоне остальных (столбец <b>${grubbsCol}</b>). Проверьте протокол именно этой серии — калибровку, партию реагентов, оператора.`
+  };
+
+  // ---- render metrics ----
+  const grid = document.getElementById('metricGrid');
+  grid.innerHTML = '';
+  const metrics = [
+    {label:'Повторяемость, Grm %', value: fmt(GrmPct)+'%', th:'норма ≤ 5%', pass: repPass, tip: TIPS.rep},
+    {label:'Воспроизводимость, GRm %', value: fmt(GRmPct)+'%', th:'норма ≤ 8%', pass: reproPass, tip: TIPS.repro},
+    {label:'Точность, Δm %', value: fmt(dMPct)+'%', th:'норма ≤ 20%', pass: accPass, tip: TIPS.acc},
+    {label:'Среднее общее, R7', value: fmt(R7,3), th:`D2 = ${fmt(D2,2)} · смещение ${fmt(biasPct,1)}%`, pass: null},
+  ];
+  metrics.forEach(mt=>{
+    const div = document.createElement('div');
+    div.className = 'metric' + (mt.pass===null ? '' : (mt.pass? ' pass':' fail'));
+    div.innerHTML = `
+      <p class="label">${mt.label}</p>
+      <p class="value">${mt.value}</p>
+      <p class="threshold">${mt.th}</p>
+      ${mt.pass===null ? '' : `<span class="status">${mt.pass? 'В норме':'Превышение'}</span>`}
+      ${mt.tip ? `<p class="tip">${mt.tip}</p>` : ''}
+    `;
+    grid.appendChild(div);
+  });
+
+  // ---- aux table ----
+  const aux = document.getElementById('auxBlock');
+  aux.innerHTML = `
+  <table class="auxtable">
+    <thead><tr><th>Показатель</th><th>Значение</th><th>Норматив</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td>Критерий Кохрена, Gm</td><td class="val">${fmt(Gm,4)}</td><td class="val">≤ ${GmTabl} (L=15)</td><td>${pill(cochranPass)}</td></tr>
+      <tr><td>GRm min (промахи средних)</td><td class="val">${fmt(GRmMin,3)}</td><td class="val">≤ ${GRtabl}</td><td>${pill(GRmMin<=GRtabl)}</td></tr>
+      <tr><td>GRm max (промахи средних)</td><td class="val">${fmt(GRmMax,3)}</td><td class="val">≤ ${GRtabl}</td><td>${pill(GRmMax<=GRtabl)}</td></tr>
+      <tr><td>Правильность, tm</td><td class="val">${fmt(tm,3)}</td><td class="val">≤ ${tTabl} (P=0.95, L=15)</td><td>${pill(truenessPass)}</td></tr>
+      <tr><td>Δcm, % (показатель правильности)</td><td class="val">${fmt(dCmPct,2)}%</td><td class="val">—</td><td>—</td></tr>
+      <tr><td>Предел повторяемости, %</td><td class="val">${fmt(repLimit,2)}%</td><td class="val">—</td><td>—</td></tr>
+      <tr><td>Предел воспроизводимости, %</td><td class="val">${fmt(reproLimit,2)}%</td><td class="val">—</td><td>—</td></tr>
+      <tr><td>Qm = R7 − D2</td><td class="val">${fmt(Qm,4)}</td><td class="val">—</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <ul class="rec-list">${[
+      {t:TIPS.cochran, ok:cochranPass},
+      {t:TIPS.grubbs, ok:grubbsPass},
+      {t:TIPS.trueness, ok:truenessPass}
+    ].map(x=>`<li class="${x.ok?'ok':''}">${x.t}</li>`).join('')}</ul>
+  `;
+
+  // ---- stamp ----
+  const stampArea = document.getElementById('stampArea');
+  stampArea.innerHTML = `
+    <div class="stamp ${overallPass? '':'fail'}">${overallPass? 'методика пригодна' : 'не пригодна'}</div>
+    <p class="stamp-sub">${overallPass
+      ? 'Все проверенные показатели (повторяемость, воспроизводимость, точность, отсутствие промахов и значимого смещения) укладываются в норму.'
+      : 'Один или несколько показателей превышают норматив — см. отмеченные красным метрики выше.'}</p>
+  `;
+
+  document.getElementById('resultsSection').style.display='block';
+  document.getElementById('emptySection').style.display='none';
+}
+
+function pill(pass){
+  return `<span class="pill ${pass?'pass':'fail'}">${pass?'ок':'превышение'}</span>`;
+}
+
+document.getElementById('auxToggle').addEventListener('click', ()=>{
+  const block = document.getElementById('auxBlock');
+  const open = block.classList.toggle('open');
+  document.getElementById('auxToggle').textContent = (open? '▾':'▸') + ' дополнительные проверки (Кохрен, промахи, правильность)';
+});
+</script>
+</body>
+</html>
